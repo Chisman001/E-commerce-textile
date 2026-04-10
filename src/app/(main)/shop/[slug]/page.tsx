@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatNaira } from "@/lib/utils";
 import { Package, Palette, Layers, Ruler, ArrowLeft } from "lucide-react";
-import type { Product, Category } from "@/types";
+import type { Product } from "@/types";
 
 interface ProductPageProps {
   params: { slug: string };

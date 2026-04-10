@@ -40,8 +40,7 @@ export async function POST(req: Request) {
   const { type: eventType } = evt;
 
   if (eventType === "user.created") {
-    const { id, first_name, last_name, email_addresses, phone_numbers } =
-      evt.data;
+    const { id, first_name, last_name, phone_numbers } = evt.data;
     const fullName =
       [first_name, last_name].filter(Boolean).join(" ") || null;
     const phone = phone_numbers?.[0]?.phone_number || null;
