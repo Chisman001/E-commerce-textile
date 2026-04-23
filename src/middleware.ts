@@ -10,8 +10,13 @@ export default authMiddleware({
     "/sign-in/(.*)",
     "/sign-up",
     "/sign-up/(.*)",
+    "/contact",
+    "/privacy-policy",
+    "/terms-of-service",
+    "/return-policy",
     "/api/webhooks/(.*)",
     "/api/debug/(.*)",
+    "/api/contact",
   ],
   ignoredRoutes: ["/api/webhooks/(.*)"],
 });

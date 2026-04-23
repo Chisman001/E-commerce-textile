@@ -118,13 +118,16 @@ export default async function Footer() {
         <div className="mt-10 border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} BlesseOgoVIk Fab. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link href="#" className="hover:text-orange-400">
+            <Link href="/contact" className="hover:text-orange-400">
+              Contact Us
+            </Link>
+            <Link href="/privacy-policy" className="hover:text-orange-400">
               Privacy Policy
             </Link>
-            <Link href="#" className="hover:text-orange-400">
+            <Link href="/terms-of-service" className="hover:text-orange-400">
               Terms of Service
             </Link>
-            <Link href="#" className="hover:text-orange-400">
+            <Link href="/return-policy" className="hover:text-orange-400">
               Return Policy
             </Link>
           </div>

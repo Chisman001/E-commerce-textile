@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, Truck } from "lucide-react";
+
+const SHIPPING_FEE = 1500;
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa",
@@ -35,6 +37,7 @@ interface FormErrors {
   address?: string;
   city?: string;
   state?: string;
+  general?: string;
 }
 
 export default function CheckoutPage() {
@@ -71,7 +74,8 @@ export default function CheckoutPage() {
     return null;
   }
 
-  const total = totalPrice();
+  const subtotal = totalPrice();
+  const grandTotal = subtotal + SHIPPING_FEE;
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -86,31 +90,84 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const createOrder = async (paymentReference: string) => {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+        deliveryAddress: formData.address,
+        deliveryCity: formData.city,
+        deliveryState: formData.state,
+        phone: formData.phone,
+        shippingFee: SHIPPING_FEE,
+        paymentReference,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Order creation failed");
+    const { orderId } = await res.json();
+    clearCart();
+    router.push(`/orders/${orderId}?success=true`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!user) return;
+
+    const email = user.primaryEmailAddress?.emailAddress;
+    if (!email) {
+      setErrors({ general: "No email address found on your account." });
+      return;
+    }
+
+    const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+    if (!publicKey) {
+      setErrors({ general: "Payment configuration error. Please contact support." });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
-          deliveryAddress: formData.address,
-          deliveryCity: formData.city,
-          deliveryState: formData.state,
-          phone: formData.phone,
-        }),
-      });
+      // Dynamically import Paystack (browser-only library)
+      const PaystackPop = (await import("@paystack/inline-js")).default;
+      const paystack = new PaystackPop();
 
-      if (!res.ok) throw new Error("Order failed");
-      const { orderId } = await res.json();
-      clearCart();
-      router.push(`/orders/${orderId}?success=true`);
+      paystack.newTransaction({
+        key: publicKey,
+        email,
+        amount: grandTotal * 100, // Paystack uses kobo
+        currency: "NGN",
+        metadata: {
+          custom_fields: [
+            {
+              display_name: "Customer Name",
+              variable_name: "customer_name",
+              value: formData.fullName,
+            },
+            {
+              display_name: "Phone",
+              variable_name: "phone",
+              value: formData.phone,
+            },
+          ],
+        },
+        onSuccess: async (transaction: { reference: string }) => {
+          try {
+            await createOrder(transaction.reference);
+          } catch {
+            setErrors({ general: "Payment received but order creation failed. Please contact us with your payment reference: " + transaction.reference });
+            setIsSubmitting(false);
+          }
+        },
+        onCancel: () => {
+          setIsSubmitting(false);
+        },
+      });
     } catch {
-      setErrors({ address: "Order failed. Please try again." });
-    } finally {
+      setErrors({ general: "Could not initialize payment. Please try again." });
       setIsSubmitting(false);
     }
   };
@@ -218,18 +275,36 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Shipping Notice */}
+            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3">
+              <Truck className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+              <div className="text-sm text-orange-700">
+                <p className="font-semibold mb-1">Flat Rate Shipping — {formatNaira(SHIPPING_FEE)}</p>
+                <p>
+                  We deliver across all Nigerian states. Standard delivery takes
+                  3–7 business days. You will receive a tracking number once your
+                  order is dispatched.
+                </p>
+              </div>
+            </div>
+
             {/* Payment Notice */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
               <ShieldCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
               <div className="text-sm text-blue-700">
-                <p className="font-semibold mb-1">Secure Payment</p>
+                <p className="font-semibold mb-1">Secure Payment via Paystack</p>
                 <p>
-                  Your order will be processed and payment collected via Paystack
-                  at delivery confirmation. We accept bank transfers and card
-                  payments.
+                  Your payment is processed securely by Paystack. We accept bank
+                  transfers, cards, and USSD.
                 </p>
               </div>
             </div>
+
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+                {errors.general}
+              </div>
+            )}
           </div>
 
           {/* Order Summary */}
@@ -274,11 +349,11 @@ export default function CheckoutPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>{formatNaira(total)}</span>
+                  <span>{formatNaira(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery fee</span>
-                  <span className="text-green-600 font-medium">TBD</span>
+                  <span className="text-orange-600 font-medium">{formatNaira(SHIPPING_FEE)}</span>
                 </div>
               </div>
 
@@ -286,7 +361,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span className="text-orange-500">{formatNaira(total)}</span>
+                <span className="text-orange-500">{formatNaira(grandTotal)}</span>
               </div>
 
               <Button
@@ -297,10 +372,10 @@ export default function CheckoutPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Placing Order...
+                    Redirecting to Payment...
                   </>
                 ) : (
-                  "Place Order"
+                  `Pay ${formatNaira(grandTotal)}`
                 )}
               </Button>
             </div>

@@ -9,7 +9,7 @@ import OrderStatusBadge from "@/components/orders/order-status-badge";
 import { formatNaira } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, ArrowLeft, MapPin, Phone, Package } from "lucide-react";
+import { CheckCircle, ArrowLeft, MapPin, Phone, Package, Truck } from "lucide-react";
 
 type OrderItemWithProduct = {
   id: number;
@@ -158,8 +158,15 @@ export default async function OrderDetailPage({
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>
-                  {formatNaira(parseFloat(currentOrder.totalAmount))}
+                  {formatNaira(
+                    parseFloat(currentOrder.totalAmount) -
+                      parseFloat(currentOrder.shippingFee ?? "1500")
+                  )}
                 </span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Shipping fee</span>
+                <span>{formatNaira(parseFloat(currentOrder.shippingFee ?? "1500"))}</span>
               </div>
               <div className="flex justify-between font-bold text-base">
                 <span>Total</span>
@@ -192,6 +199,29 @@ export default async function OrderDetailPage({
               Contact
             </h2>
             <p className="text-sm text-gray-600">{currentOrder.phone}</p>
+          </div>
+
+          {/* Tracking */}
+          <div className="bg-white border rounded-xl p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Truck className="h-4 w-4 text-orange-500" />
+              Shipment Tracking
+            </h2>
+            {currentOrder.trackingNumber ? (
+              <div className="space-y-1">
+                <p className="text-sm font-mono font-medium text-gray-900">
+                  {currentOrder.trackingNumber}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Use this number to track your package with the courier.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                A tracking number will appear here once your order has been
+                dispatched.
+              </p>
+            )}
           </div>
 
           {/* Payment */}

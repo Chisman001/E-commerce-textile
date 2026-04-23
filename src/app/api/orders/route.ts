@@ -16,6 +16,7 @@ const createOrderSchema = z.object({
   deliveryCity: z.string().min(2),
   deliveryState: z.string().min(2),
   phone: z.string().min(10),
+  shippingFee: z.number().default(1500),
   paymentReference: z.string().optional(),
 });
 
@@ -38,20 +39,22 @@ export async function POST(req: Request) {
 
     const productMap = new Map(foundProducts.map((p) => [p.id, p]));
 
-    let totalAmount = 0;
+    let subtotal = 0;
     const lineItems = data.items.map((item) => {
       const product = productMap.get(item.id);
       if (!product) throw new Error(`Product not found: ${item.id}`);
       const unitPrice = parseFloat(product.price);
-      const subtotal = unitPrice * item.quantity;
-      totalAmount += subtotal;
+      const itemSubtotal = unitPrice * item.quantity;
+      subtotal += itemSubtotal;
       return {
         productId: item.id,
         quantity: item.quantity,
         unitPrice: unitPrice.toString(),
-        subtotal: subtotal.toString(),
+        subtotal: itemSubtotal.toString(),
       };
     });
+
+    const totalAmount = subtotal + data.shippingFee;
 
     const [order] = await db
       .insert(orders)
@@ -59,6 +62,7 @@ export async function POST(req: Request) {
         clerkUserId: userId,
         status: "pending",
         totalAmount: totalAmount.toString(),
+        shippingFee: data.shippingFee.toString(),
         deliveryAddress: data.deliveryAddress,
         deliveryCity: data.deliveryCity,
         deliveryState: data.deliveryState,

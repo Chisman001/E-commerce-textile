@@ -53,12 +53,14 @@ export const orders = pgTable("orders", {
   clerkUserId: text("clerk_user_id").notNull(),
   status: text("status").notNull().default("pending"),
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  shippingFee: numeric("shipping_fee", { precision: 12, scale: 2 }).default("1500"),
   deliveryAddress: text("delivery_address").notNull(),
   deliveryCity: text("delivery_city").notNull(),
   deliveryState: text("delivery_state").notNull(),
   phone: text("phone").notNull(),
   paymentReference: text("payment_reference"),
   paymentStatus: text("payment_status").default("pending"),
+  trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
