@@ -5,7 +5,7 @@ import { getFooterCategories } from "@/lib/data/footer-categories";
 // TODO: Replace these with your actual social media URLs
 const SOCIAL_LINKS = {
   instagram: "https://instagram.com/YOUR_INSTAGRAM_HANDLE",
-  facebook: "https://facebook.com/YOUR_FACEBOOK_PAGE",
+  facebook: "https://www.facebook.com/profile.php?id=100063929534201",
   whatsapp: "https://wa.me/2348037340545",
 };
 
