@@ -1,4 +1,5 @@
 import { Shield, Truck, RefreshCw, Star, Phone } from "lucide-react";
+import NewsletterSection from "./newsletter-section";
 
 const trustFeatures = [
   {
@@ -33,7 +34,7 @@ const testimonials = [
   {
     name: "Fatima Al-Hassan",
     location: "Kano",
-    text: "BlesseOgoVIk Fab has the finest lace collection I have ever seen. The Gold Metallic Lace I got for my daughter's wedding was the talk of the ceremony.",
+    text: "BlessedOgoVik Fab has the finest lace collection I have ever seen. The Gold Metallic Lace I got for my daughter's wedding was the talk of the ceremony.",
     rating: 5,
   },
   {
@@ -52,7 +53,7 @@ export default function TrustSection() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-3">
-              Why Shop with BlesseOgoVIk Fab?
+              Why Shop with BlessedOgoVik Fab?
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto">
               We are committed to bringing you the finest luxury beaded lace with
@@ -122,28 +123,7 @@ export default function TrustSection() {
         </div>
       </section>
 
-      {/* Newsletter */}
-      <section className="py-12 bg-orange-500">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-            Stay Updated with New Arrivals
-          </h2>
-          <p className="text-orange-100 mb-6">
-            Subscribe to get notified when new lace designs arrive and receive
-              exclusive member discounts.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-            <button className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium transition-colors">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </section>
+      <NewsletterSection />
     </>
   );
 }

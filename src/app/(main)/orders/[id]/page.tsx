@@ -180,16 +180,23 @@ export default async function OrderDetailPage({
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Delivery Info */}
+          {/* Delivery / Pickup Info */}
           <div className="bg-white border rounded-xl p-6">
             <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <MapPin className="h-4 w-4 text-orange-500" />
-              Delivery Address
+              {currentOrder.fulfillmentType === "pickup" ? "Pickup" : "Delivery Address"}
             </h2>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p className="font-medium text-gray-900">{currentOrder.deliveryAddress}</p>
-              <p>{currentOrder.deliveryCity}, {currentOrder.deliveryState}</p>
-            </div>
+            {currentOrder.fulfillmentType === "pickup" ? (
+              <div className="text-sm text-gray-600 space-y-1">
+                <p className="font-medium text-gray-900">In-Store Pickup</p>
+                <p>MAB 30 Main line Shopping Center, Aba, Abia State</p>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600 space-y-1">
+                <p className="font-medium text-gray-900">{currentOrder.deliveryAddress}</p>
+                <p>{currentOrder.deliveryCity}, {currentOrder.deliveryState}</p>
+              </div>
+            )}
           </div>
 
           {/* Contact */}

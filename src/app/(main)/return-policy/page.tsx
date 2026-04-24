@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Return Policy — BlesseOgoVIk Fab",
+  title: "Return Policy — BlessedOgoVik Fab",
 };
 
 export default function ReturnPolicyPage() {
@@ -25,7 +25,7 @@ export default function ReturnPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold text-gray-800 mb-3">Overview</h2>
             <p className="text-gray-600 leading-relaxed">
-              At BlesseOgoVIk Fab, we want you to be completely satisfied with
+              At BlessedOgoVik Fab, we want you to be completely satisfied with
               your purchase. If for any reason you are not happy with your order,
               we are here to help. Please read our return policy carefully before
               making a purchase.

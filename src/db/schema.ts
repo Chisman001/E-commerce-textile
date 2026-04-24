@@ -52,11 +52,12 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   clerkUserId: text("clerk_user_id").notNull(),
   status: text("status").notNull().default("pending"),
+  fulfillmentType: text("fulfillment_type").notNull().default("delivery"),
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
   shippingFee: numeric("shipping_fee", { precision: 12, scale: 2 }).default("1500"),
-  deliveryAddress: text("delivery_address").notNull(),
-  deliveryCity: text("delivery_city").notNull(),
-  deliveryState: text("delivery_state").notNull(),
+  deliveryAddress: text("delivery_address"),
+  deliveryCity: text("delivery_city"),
+  deliveryState: text("delivery_state"),
   phone: text("phone").notNull(),
   paymentReference: text("payment_reference"),
   paymentStatus: text("payment_status").default("pending"),
@@ -77,6 +78,24 @@ export const orderItems = pgTable("order_items", {
   subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
 });
 
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+});
+
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id),
+  clerkUserId: text("clerk_user_id").notNull(),
+  rating: integer("rating").notNull(),
+  title: text("title"),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   orders: many(orders),
 }));
@@ -91,6 +110,14 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     references: [categories.id],
   }),
   orderItems: many(orderItems),
+  reviews: many(reviews),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  product: one(products, {
+    fields: [reviews.productId],
+    references: [products.id],
+  }),
 }));
 
 export const ordersRelations = relations(orders, ({ many }) => ({
@@ -113,3 +140,5 @@ export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;

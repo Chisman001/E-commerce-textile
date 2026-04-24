@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy — BlesseOgoVIk Fab",
+  title: "Privacy Policy — BlessedOgoVik Fab",
 };
 
 export default function PrivacyPolicyPage() {
@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold text-gray-800 mb-3">Introduction</h2>
             <p className="text-gray-600 leading-relaxed">
-              BlesseOgoVIk Fab (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
+              BlessedOgoVik Fab (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
               &ldquo;our&rdquo;) is committed to protecting your personal
               information. This Privacy Policy explains what data we collect,
               how we use it, and your rights regarding your information when you

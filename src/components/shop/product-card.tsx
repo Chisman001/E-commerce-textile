@@ -11,9 +11,11 @@ import type { Product } from "@/types";
 
 interface ProductCardProps {
   product: Product;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, avgRating, reviewCount }: ProductCardProps) {
   const { addItem } = useCartStore();
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -76,6 +78,21 @@ export default function ProductCard({ product }: ProductCardProps) {
           <h3 className="font-semibold text-gray-900 group-hover:text-orange-500 transition-colors line-clamp-1 mb-1">
             {product.name}
           </h3>
+          {avgRating !== undefined && reviewCount !== undefined && reviewCount > 0 && (
+            <div className="flex items-center gap-1 mb-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3 w-3 ${
+                    i < Math.round(avgRating)
+                      ? "fill-orange-400 text-orange-400"
+                      : "fill-gray-200 text-gray-200"
+                  }`}
+                />
+              ))}
+              <span className="text-xs text-gray-400 ml-0.5">({reviewCount})</span>
+            </div>
+          )}
           <p className="text-xs text-gray-500 line-clamp-2 mb-3">
             {product.description}
           </p>

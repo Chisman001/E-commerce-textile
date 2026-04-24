@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service — BlesseOgoVIk Fab",
+  title: "Terms of Service — BlessedOgoVik Fab",
 };
 
 export default function TermsOfServicePage() {
@@ -29,7 +29,7 @@ export default function TermsOfServicePage() {
               Acceptance of Terms
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              By accessing or using the BlesseOgoVIk Fab website, placing an
+              By accessing or using the BlessedOgoVik Fab website, placing an
               order, or creating an account, you agree to be bound by these
               Terms of Service. If you do not agree to these terms, please do
               not use our website.
@@ -41,7 +41,7 @@ export default function TermsOfServicePage() {
               About Our Products
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              BlesseOgoVIk Fab sells premium luxury beaded lace and textile
+              BlessedOgoVik Fab sells premium luxury beaded lace and textile
               fabrics. All products are subject to availability. We reserve the
               right to discontinue any product at any time. Product images are
               for illustrative purposes; slight variations in colour may occur
@@ -125,7 +125,7 @@ export default function TermsOfServicePage() {
             </h2>
             <p className="text-gray-600 leading-relaxed">
               All content on this website — including text, images, logos, and
-              product descriptions — is the property of BlesseOgoVIk Fab and
+              product descriptions — is the property of BlessedOgoVik Fab and
               may not be reproduced, distributed, or used without our written
               permission.
             </p>
@@ -136,7 +136,7 @@ export default function TermsOfServicePage() {
               Limitation of Liability
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              To the maximum extent permitted by law, BlesseOgoVIk Fab shall
+              To the maximum extent permitted by law, BlessedOgoVik Fab shall
               not be liable for any indirect, incidental, or consequential
               damages arising from your use of our website or products. Our
               total liability shall not exceed the amount paid for the specific

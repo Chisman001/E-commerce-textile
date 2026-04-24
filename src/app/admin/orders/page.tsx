@@ -12,11 +12,12 @@ type Order = {
   id: number;
   clerkUserId: string;
   status: string;
+  fulfillmentType: string | null;
   totalAmount: string;
   shippingFee: string | null;
-  deliveryAddress: string;
-  deliveryCity: string;
-  deliveryState: string;
+  deliveryAddress: string | null;
+  deliveryCity: string | null;
+  deliveryState: string | null;
   phone: string;
   paymentReference: string | null;
   paymentStatus: string | null;
@@ -32,6 +33,11 @@ const statusColors: Record<string, string> = {
   shipped: "bg-purple-100 text-purple-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
+};
+
+const fulfillmentColors: Record<string, string> = {
+  delivery: "bg-blue-50 text-blue-700",
+  pickup: "bg-green-50 text-green-700",
 };
 
 export default function AdminOrdersPage() {
@@ -116,13 +122,18 @@ export default function AdminOrdersPage() {
               <div key={order.id} className="bg-white rounded-xl border p-5 space-y-4">
                 {/* Header */}
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <Package className="h-4 w-4 text-orange-500" />
                     <span className="font-semibold text-gray-900">Order #{order.id}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[order.status] ?? "bg-gray-100 text-gray-700"}`}
                     >
                       {order.status}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${fulfillmentColors[order.fulfillmentType ?? "delivery"] ?? "bg-gray-100 text-gray-700"}`}
+                    >
+                      {order.fulfillmentType === "pickup" ? "Pickup" : "Delivery"}
                     </span>
                     {order.paymentStatus === "paid" ? (
                       <Badge className="bg-green-100 text-green-800 text-xs">Paid</Badge>

@@ -11,8 +11,10 @@ import { Separator } from "@/components/ui/separator";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { ShieldCheck, Loader2, Truck } from "lucide-react";
+import Link from "next/link";
 
-const SHIPPING_FEE = 1500;
+const DELIVERY_FEE = 1500;
+const PICKUP_FEE = 0;
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa",
@@ -45,6 +47,7 @@ export default function CheckoutPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fulfillmentType, setFulfillmentType] = useState<"delivery" | "pickup">("delivery");
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     phone: "",
@@ -75,17 +78,20 @@ export default function CheckoutPage() {
   }
 
   const subtotal = totalPrice();
-  const grandTotal = subtotal + SHIPPING_FEE;
+  const shippingFee = fulfillmentType === "pickup" ? PICKUP_FEE : DELIVERY_FEE;
+  const grandTotal = subtotal + shippingFee;
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.phone.trim() || formData.phone.length < 10)
       newErrors.phone = "Enter a valid phone number";
-    if (!formData.address.trim() || formData.address.length < 5)
-      newErrors.address = "Enter your street address";
-    if (!formData.city.trim()) newErrors.city = "City is required";
-    if (!formData.state) newErrors.state = "Select your state";
+    if (fulfillmentType === "delivery") {
+      if (!formData.address.trim() || formData.address.length < 5)
+        newErrors.address = "Enter your street address";
+      if (!formData.city.trim()) newErrors.city = "City is required";
+      if (!formData.state) newErrors.state = "Select your state";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,11 +102,12 @@ export default function CheckoutPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
-        deliveryAddress: formData.address,
-        deliveryCity: formData.city,
-        deliveryState: formData.state,
+        fulfillmentType,
+        deliveryAddress: fulfillmentType === "delivery" ? formData.address : undefined,
+        deliveryCity: fulfillmentType === "delivery" ? formData.city : undefined,
+        deliveryState: fulfillmentType === "delivery" ? formData.state : undefined,
         phone: formData.phone,
-        shippingFee: SHIPPING_FEE,
+        shippingFee,
         paymentReference,
       }),
     });
@@ -181,8 +188,48 @@ export default function CheckoutPage() {
           {/* Delivery Form */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Delivery Information
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Fulfillment Method
+              </h2>
+
+              {/* Fulfillment toggle */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentType("delivery")}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-sm font-medium transition-colors ${
+                    fulfillmentType === "delivery"
+                      ? "border-orange-500 bg-orange-50 text-orange-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  <Truck className="h-4 w-4 shrink-0" />
+                  Delivery (₦1,500)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentType("pickup")}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 text-sm font-medium transition-colors ${
+                    fulfillmentType === "pickup"
+                      ? "border-orange-500 bg-orange-50 text-orange-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  Pickup (Free)
+                </button>
+              </div>
+
+              {fulfillmentType === "pickup" && (
+                <div className="mb-5 bg-green-50 border border-green-100 rounded-lg p-4 text-sm text-green-700">
+                  <p className="font-semibold mb-1">Pickup at Store — Free</p>
+                  <p>MAB 30 Main line Shopping Center, Aba, Abia State</p>
+                  <p className="text-green-600 mt-1">Mon–Sat: 8 AM – 7 PM · Sunday: 10 AM – 4 PM</p>
+                </div>
+              )}
+
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {fulfillmentType === "delivery" ? "Delivery Information" : "Contact Information"}
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -219,74 +266,83 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <div className="sm:col-span-2">
-                  <Label htmlFor="address">Street Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    placeholder="e.g. 15 Awolowo Road, Ikoyi"
-                    className="mt-1.5"
-                  />
-                  {errors.address && (
-                    <p className="text-xs text-red-500 mt-1">{errors.address}</p>
-                  )}
-                </div>
+                {fulfillmentType === "delivery" && (
+                  <>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="address">Street Address</Label>
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
+                        placeholder="e.g. 15 Awolowo Road, Ikoyi"
+                        className="mt-1.5"
+                      />
+                      {errors.address && (
+                        <p className="text-xs text-red-500 mt-1">{errors.address}</p>
+                      )}
+                    </div>
 
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
-                    placeholder="e.g. Lagos"
-                    className="mt-1.5"
-                  />
-                  {errors.city && (
-                    <p className="text-xs text-red-500 mt-1">{errors.city}</p>
-                  )}
-                </div>
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) =>
+                          setFormData({ ...formData, city: e.target.value })
+                        }
+                        placeholder="e.g. Lagos"
+                        className="mt-1.5"
+                      />
+                      {errors.city && (
+                        <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+                      )}
+                    </div>
 
-                <div>
-                  <Label htmlFor="state">State</Label>
-                  <select
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) =>
-                      setFormData({ ...formData, state: e.target.value })
-                    }
-                    className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Select state</option>
-                    {NIGERIAN_STATES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.state && (
-                    <p className="text-xs text-red-500 mt-1">{errors.state}</p>
-                  )}
-                </div>
+                    <div>
+                      <Label htmlFor="state">State</Label>
+                      <select
+                        id="state"
+                        value={formData.state}
+                        onChange={(e) =>
+                          setFormData({ ...formData, state: e.target.value })
+                        }
+                        className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">Select state</option>
+                        {NIGERIAN_STATES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.state && (
+                        <p className="text-xs text-red-500 mt-1">{errors.state}</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Shipping Notice */}
-            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3">
-              <Truck className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-              <div className="text-sm text-orange-700">
-                <p className="font-semibold mb-1">Flat Rate Shipping — {formatNaira(SHIPPING_FEE)}</p>
-                <p>
-                  We deliver across all Nigerian states. Standard delivery takes
-                  3–7 business days. You will receive a tracking number once your
-                  order is dispatched.
-                </p>
+            {/* Shipping/Pickup Notice */}
+            {fulfillmentType === "delivery" && (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3">
+                <Truck className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                <div className="text-sm text-orange-700">
+                  <p className="font-semibold mb-1">Flat Rate Shipping — {formatNaira(DELIVERY_FEE)}</p>
+                  <p>
+                    We deliver across all Nigerian states. Standard delivery takes
+                    3–7 business days. You will receive a tracking number once your
+                    order is dispatched.{" "}
+                    <Link href="/shipping" className="underline font-medium">
+                      View shipping details
+                    </Link>
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Payment Notice */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
@@ -352,8 +408,10 @@ export default function CheckoutPage() {
                   <span>{formatNaira(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Delivery fee</span>
-                  <span className="text-orange-600 font-medium">{formatNaira(SHIPPING_FEE)}</span>
+                  <span>{fulfillmentType === "pickup" ? "Pickup" : "Delivery fee"}</span>
+                  <span className={fulfillmentType === "pickup" ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
+                    {fulfillmentType === "pickup" ? "Free" : formatNaira(DELIVERY_FEE)}
+                  </span>
                 </div>
               </div>
 

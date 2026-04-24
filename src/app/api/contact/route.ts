@@ -23,14 +23,14 @@ export async function POST(req: Request) {
     const resend = new Resend(apiKey);
 
     await resend.emails.send({
-      from: "BlesseOgoVIk Fab <onboarding@resend.dev>",
+      from: "BlessedOgoVik Fab <onboarding@resend.dev>",
       to: "mwodovoctoria234@gmail.com",
       replyTo: data.email,
       subject: `New Contact Message from ${data.name}`,
       text: `Name: ${data.name}\nEmail: ${data.email}\n\nMessage:\n${data.message}`,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <h2 style="color:#f97316;">New Contact Message — BlesseOgoVIk Fab</h2>
+          <h2 style="color:#f97316;">New Contact Message — BlessedOgoVik Fab</h2>
           <table style="width:100%;border-collapse:collapse;">
             <tr><td style="padding:8px 0;color:#6b7280;width:80px;">Name</td><td style="padding:8px 0;font-weight:600;">${data.name}</td></tr>
             <tr><td style="padding:8px 0;color:#6b7280;">Email</td><td style="padding:8px 0;"><a href="mailto:${data.email}">${data.email}</a></td></tr>

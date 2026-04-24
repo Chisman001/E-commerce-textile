@@ -29,7 +29,7 @@ export default function Navbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500">
             <Scissors className="h-4 w-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-gray-900">BlesseOgoVIk Fab</span>
+          <span className="text-xl font-bold text-gray-900">BlessedOgoVik Fab</span>
         </Link>
 
         {/* Desktop Nav */}

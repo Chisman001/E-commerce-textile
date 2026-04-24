@@ -5,20 +5,31 @@ import { db } from "@/db";
 import { orders, orderItems, products } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 
-const createOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      id: z.number(),
-      quantity: z.number().min(1),
-    })
-  ),
-  deliveryAddress: z.string().min(5),
-  deliveryCity: z.string().min(2),
-  deliveryState: z.string().min(2),
-  phone: z.string().min(10),
-  shippingFee: z.number().default(1500),
-  paymentReference: z.string().optional(),
-});
+const createOrderSchema = z
+  .object({
+    items: z.array(
+      z.object({
+        id: z.number(),
+        quantity: z.number().min(1),
+      })
+    ),
+    fulfillmentType: z.enum(["delivery", "pickup"]).default("delivery"),
+    deliveryAddress: z.string().min(5).optional(),
+    deliveryCity: z.string().min(2).optional(),
+    deliveryState: z.string().min(2).optional(),
+    phone: z.string().min(10),
+    shippingFee: z.number().default(1500),
+    paymentReference: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.fulfillmentType === "delivery") {
+        return !!data.deliveryAddress && !!data.deliveryCity && !!data.deliveryState;
+      }
+      return true;
+    },
+    { message: "Delivery address, city, and state are required for delivery orders" }
+  );
 
 export async function POST(req: Request) {
   const { userId } = auth();
@@ -61,11 +72,12 @@ export async function POST(req: Request) {
       .values({
         clerkUserId: userId,
         status: "pending",
+        fulfillmentType: data.fulfillmentType,
         totalAmount: totalAmount.toString(),
         shippingFee: data.shippingFee.toString(),
-        deliveryAddress: data.deliveryAddress,
-        deliveryCity: data.deliveryCity,
-        deliveryState: data.deliveryState,
+        deliveryAddress: data.deliveryAddress || null,
+        deliveryCity: data.deliveryCity || null,
+        deliveryState: data.deliveryState || null,
         phone: data.phone,
         paymentReference: data.paymentReference || null,
         paymentStatus: data.paymentReference ? "paid" : "pending",

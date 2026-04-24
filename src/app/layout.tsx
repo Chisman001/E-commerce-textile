@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "BlesseOgoVIk Fab — Premium Nigerian Textiles",
+  title: "BlessedOgoVik Fab — Premium Nigerian Textiles",
   description:
     "Shop authentic Nigerian fabrics including Ankara, Lace, Chiffon, Aso-Oke, George, and more. Premium quality textiles delivered across Nigeria.",
 };

@@ -1,17 +1,20 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/db";
-import { products, categories } from "@/db/schema";
+import { products, categories, reviews } from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
 import ProductImageGallery from "@/components/shop/product-image-gallery";
 import AddToCartButton from "@/components/shop/add-to-cart-button";
 import QuantitySelector from "@/components/shop/quantity-selector";
 import ProductCard from "@/components/shop/product-card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatNaira } from "@/lib/utils";
-import { Package, Palette, Layers, Ruler, ArrowLeft } from "lucide-react";
+import { Package, Palette, Layers, Ruler, ArrowLeft, ShieldCheck, RotateCcw, Truck, BadgeCheck, MessageCircle } from "lucide-react";
 import type { Product } from "@/types";
+import ReviewList from "@/components/shop/review-list";
+import ReviewFormWrapper from "@/components/shop/review-form-wrapper";
+import StarRating from "@/components/shop/star-rating";
+import { auth } from "@clerk/nextjs/server";
 
 interface ProductPageProps {
   params: { slug: string };
@@ -95,7 +98,7 @@ export async function generateMetadata({ params }: ProductPageProps) {
   const product = await getProduct(params.slug);
   if (!product) return {};
   return {
-    title: `${product.name} — BlesseOgoVIk Fab`,
+    title: `${product.name} — BlessedOgoVik Fab`,
     description: product.description || undefined,
   };
 }
@@ -104,10 +107,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await getProduct(params.slug);
   if (!product) notFound();
 
-  const relatedProducts = await getRelatedProducts(
-    product.categoryId,
-    product.slug
-  );
+  const { userId } = auth();
+
+  const [relatedProducts, productReviews] = await Promise.all([
+    getRelatedProducts(product.categoryId, product.slug),
+    db.select().from(reviews).where(eq(reviews.productId, product.id)),
+  ]);
+
+  const avgRating =
+    productReviews.length > 0
+      ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
+      : 0;
 
   const specs = [
     { icon: Layers, label: "Material", value: product.material },
@@ -161,6 +171,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
           )}
 
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+
+          {productReviews.length > 0 && (
+            <div className="flex items-center gap-2">
+              <StarRating rating={avgRating} size="sm" />
+              <a href="#reviews" className="text-sm text-gray-500 hover:text-orange-500">
+                {productReviews.length} review{productReviews.length !== 1 ? "s" : ""}
+              </a>
+            </div>
+          )}
 
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold text-orange-500">
@@ -227,17 +246,74 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
           )}
 
-          {/* Trust badges */}
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="text-xs">
-              🚚 Free delivery over ₦50,000
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              🔄 7-day return policy
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              ✅ Authenticated fabric
-            </Badge>
+          {/* Trust strip */}
+          <div className="border rounded-xl p-4 grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="h-5 w-5 text-green-500 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">Secure Payment</p>
+                <p className="text-xs text-gray-500">Powered by Paystack</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <RotateCcw className="h-5 w-5 text-blue-500 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">7-Day Returns</p>
+                <p className="text-xs text-gray-500">Hassle-free policy</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Truck className="h-5 w-5 text-orange-500 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">Nationwide Delivery</p>
+                <p className="text-xs text-gray-500">₦1,500 flat rate</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <BadgeCheck className="h-5 w-5 text-purple-500 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">Authentic Fabric</p>
+                <p className="text-xs text-gray-500">Quality guaranteed</p>
+              </div>
+            </div>
+          </div>
+
+          {/* WhatsApp share */}
+          <a
+            href={`https://wa.me/?text=Check out this fabric: ${product.name} - ${process.env.NEXT_PUBLIC_APP_URL || "https://blesseogovik.com"}/shop/${product.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-green-600 hover:text-green-700 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Share on WhatsApp
+          </a>
+        </div>
+      </div>
+
+      {/* Reviews */}
+      <div id="reviews" className="mt-16">
+        <h2 className="text-2xl font-bold text-gray-900 mb-8">
+          Customer Reviews
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <ReviewList reviews={productReviews} />
+          <div className="border rounded-xl p-6">
+            {userId ? (
+              <ReviewFormWrapper productId={product.id} />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4 text-sm">
+                  Sign in to leave a review for this product.
+                </p>
+                <Link
+                  href="/sign-in"
+                  className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  Sign In to Review
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
