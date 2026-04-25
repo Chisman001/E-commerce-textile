@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { ShoppingCart, Menu, X, Scissors } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,8 +18,11 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { totalItems, toggleCart } = useCartStore();
   const itemCount = totalItems();
+
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -59,7 +62,7 @@ export default function Navbar() {
             aria-label="Open cart"
           >
             <ShoppingCart className="h-5 w-5 text-gray-700" />
-            {itemCount > 0 && (
+            {mounted && itemCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-bold text-white">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
