@@ -12,11 +12,6 @@ const db = drizzle(sql, { schema });
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  console.log("Clearing old data...");
-  await db.delete(schema.products);
-  await db.delete(schema.categories);
-  console.log("✅ Old data cleared");
-
   console.log("Inserting categories...");
   const insertedCategories = await db
     .insert(schema.categories)
@@ -29,7 +24,7 @@ async function seed() {
   const allCategories = await db.select().from(schema.categories);
   const categoryMap = new Map(allCategories.map((c) => [c.slug, c.id]));
 
-  console.log("Upserting products (insert or update images and fields on slug conflict)...");
+  console.log("Upserting products (insert new or update price/name/fields on slug conflict; images preserved)...");
   let processedCount = 0;
 
   for (const product of productsData) {
@@ -56,7 +51,6 @@ async function seed() {
           description: productData.description,
           price: productData.price,
           categoryId,
-          images: productData.images,
           stockQuantity: productData.stockQuantity,
           material: productData.material,
           pattern: productData.pattern,
