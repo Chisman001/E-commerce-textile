@@ -3,23 +3,38 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { orders, orderItems, products } from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+
+const DELIVERY_FEE = 1500;
+const PICKUP_FEE = 0;
+
+type VerifiedPaystackTransaction = {
+  amount: number;
+  currency: string;
+  reference: string;
+  status: string;
+};
+
+type PaystackVerifyResponse = {
+  status: boolean;
+  message: string;
+  data?: VerifiedPaystackTransaction;
+};
 
 const createOrderSchema = z
   .object({
     items: z.array(
       z.object({
-        id: z.number(),
-        quantity: z.number().min(1),
+        id: z.number().int().positive(),
+        quantity: z.number().int().min(1),
       })
-    ),
+    ).min(1),
     fulfillmentType: z.enum(["delivery", "pickup"]).default("delivery"),
     deliveryAddress: z.string().min(5).optional(),
     deliveryCity: z.string().min(2).optional(),
     deliveryState: z.string().min(2).optional(),
     phone: z.string().min(10),
-    shippingFee: z.number().default(1500),
-    paymentReference: z.string().optional(),
+    paymentReference: z.string().trim().min(1).optional(),
   })
   .refine(
     (data) => {
@@ -30,6 +45,40 @@ const createOrderSchema = z
     },
     { message: "Delivery address, city, and state are required for delivery orders" }
   );
+
+async function verifyPaystackPayment(
+  reference: string,
+  expectedAmountKobo: number
+) {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) {
+    throw new Error("PAYSTACK_SECRET_KEY is not configured");
+  }
+
+  const res = await fetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${secret}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    return false;
+  }
+
+  const payload = (await res.json()) as PaystackVerifyResponse;
+  const transaction = payload.data;
+
+  return (
+    payload.status === true &&
+    transaction?.status === "success" &&
+    transaction.reference === reference &&
+    transaction.currency === "NGN" &&
+    transaction.amount === expectedAmountKobo
+  );
+}
 
 export async function POST(req: Request) {
   const { userId } = auth();
@@ -65,7 +114,36 @@ export async function POST(req: Request) {
       };
     });
 
-    const totalAmount = subtotal + data.shippingFee;
+    const shippingFee = data.fulfillmentType === "pickup" ? PICKUP_FEE : DELIVERY_FEE;
+    const totalAmount = subtotal + shippingFee;
+    const paymentReference = data.paymentReference ?? null;
+
+    if (paymentReference) {
+      const [existingOrder] = await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.paymentReference, paymentReference))
+        .limit(1);
+
+      if (existingOrder) {
+        return NextResponse.json(
+          { error: "Payment reference has already been used" },
+          { status: 409 }
+        );
+      }
+
+      const isVerified = await verifyPaystackPayment(
+        paymentReference,
+        Math.round(totalAmount * 100)
+      );
+
+      if (!isVerified) {
+        return NextResponse.json(
+          { error: "Payment verification failed" },
+          { status: 402 }
+        );
+      }
+    }
 
     const [order] = await db
       .insert(orders)
@@ -74,13 +152,13 @@ export async function POST(req: Request) {
         status: "pending",
         fulfillmentType: data.fulfillmentType,
         totalAmount: totalAmount.toString(),
-        shippingFee: data.shippingFee.toString(),
+        shippingFee: shippingFee.toString(),
         deliveryAddress: data.deliveryAddress || null,
         deliveryCity: data.deliveryCity || null,
         deliveryState: data.deliveryState || null,
         phone: data.phone,
-        paymentReference: data.paymentReference || null,
-        paymentStatus: data.paymentReference ? "paid" : "pending",
+        paymentReference,
+        paymentStatus: paymentReference ? "paid" : "pending",
       })
       .returning();
 
