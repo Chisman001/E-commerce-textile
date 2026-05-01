@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { orders, orderItems, products } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 const DELIVERY_FEE = 1500;
 const PICKUP_FEE = 0;
@@ -20,6 +20,8 @@ interface PaystackVerification {
     };
   };
 }
+
+class PaymentReferenceAlreadyUsedError extends Error {}
 
 const createOrderSchema = z
   .object({
@@ -129,19 +131,6 @@ export async function POST(req: Request) {
     const shippingFee = data.fulfillmentType === "pickup" ? PICKUP_FEE : DELIVERY_FEE;
     const totalAmount = subtotal + shippingFee;
 
-    const [existingOrder] = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .where(eq(orders.paymentReference, data.paymentReference))
-      .limit(1);
-
-    if (existingOrder) {
-      return NextResponse.json(
-        { error: "Payment reference has already been used" },
-        { status: 409 }
-      );
-    }
-
     const isPaymentValid = await verifyPaystackPayment(
       data.paymentReference,
       totalAmount,
@@ -156,6 +145,20 @@ export async function POST(req: Request) {
     }
 
     const order = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${data.paymentReference}))`
+      );
+
+      const [existingOrder] = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.paymentReference, data.paymentReference))
+        .limit(1);
+
+      if (existingOrder) {
+        throw new PaymentReferenceAlreadyUsedError();
+      }
+
       const [createdOrder] = await tx.insert(orders).values({
         clerkUserId: userId,
         status: "processing",
@@ -179,6 +182,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ orderId: order.id }, { status: 201 });
   } catch (err) {
+    if (err instanceof PaymentReferenceAlreadyUsedError) {
+      return NextResponse.json(
+        { error: "Payment reference has already been used" },
+        { status: 409 }
+      );
+    }
+
     if (err instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request", details: err.issues },
