@@ -107,7 +107,6 @@ export default function CheckoutPage() {
         deliveryCity: fulfillmentType === "delivery" ? formData.city : undefined,
         deliveryState: fulfillmentType === "delivery" ? formData.state : undefined,
         phone: formData.phone,
-        shippingFee,
         paymentReference,
       }),
     });
