@@ -3,7 +3,22 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { orders, orderItems, products } from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+
+const SHIPPING_FEES = {
+  delivery: 1500,
+  pickup: 0,
+} as const;
+
+type PaystackTransactionVerification = {
+  status: boolean;
+  data?: {
+    status?: string;
+    amount?: number;
+    currency?: string;
+    reference?: string;
+  };
+};
 
 const createOrderSchema = z
   .object({
@@ -18,8 +33,7 @@ const createOrderSchema = z
     deliveryCity: z.string().min(2).optional(),
     deliveryState: z.string().min(2).optional(),
     phone: z.string().min(10),
-    shippingFee: z.number().default(1500),
-    paymentReference: z.string().optional(),
+    paymentReference: z.string().min(1),
   })
   .refine(
     (data) => {
@@ -31,6 +45,38 @@ const createOrderSchema = z
     { message: "Delivery address, city, and state are required for delivery orders" }
   );
 
+async function verifyPaystackPayment(reference: string, expectedAmount: number) {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) {
+    throw new Error("Missing PAYSTACK_SECRET_KEY");
+  }
+
+  const response = await fetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${secret}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    return false;
+  }
+
+  const result = (await response.json()) as PaystackTransactionVerification;
+  const expectedAmountKobo = Math.round(expectedAmount * 100);
+
+  return (
+    result.status === true &&
+    result.data?.status === "success" &&
+    result.data.reference === reference &&
+    result.data.currency === "NGN" &&
+    result.data.amount === expectedAmountKobo
+  );
+}
+
 export async function POST(req: Request) {
   const { userId } = auth();
 
@@ -41,6 +87,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const data = createOrderSchema.parse(body);
+    const shippingFee = SHIPPING_FEES[data.fulfillmentType];
 
     const productIds = data.items.map((i) => i.id);
     const foundProducts = await db
@@ -65,7 +112,32 @@ export async function POST(req: Request) {
       };
     });
 
-    const totalAmount = subtotal + data.shippingFee;
+    const totalAmount = subtotal + shippingFee;
+
+    const existingOrder = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.paymentReference, data.paymentReference))
+      .limit(1);
+
+    if (existingOrder[0]) {
+      return NextResponse.json(
+        { error: "Payment reference has already been used" },
+        { status: 409 }
+      );
+    }
+
+    const paymentIsVerified = await verifyPaystackPayment(
+      data.paymentReference,
+      totalAmount
+    );
+
+    if (!paymentIsVerified) {
+      return NextResponse.json(
+        { error: "Payment could not be verified" },
+        { status: 402 }
+      );
+    }
 
     const [order] = await db
       .insert(orders)
@@ -74,13 +146,13 @@ export async function POST(req: Request) {
         status: "pending",
         fulfillmentType: data.fulfillmentType,
         totalAmount: totalAmount.toString(),
-        shippingFee: data.shippingFee.toString(),
+        shippingFee: shippingFee.toString(),
         deliveryAddress: data.deliveryAddress || null,
         deliveryCity: data.deliveryCity || null,
         deliveryState: data.deliveryState || null,
         phone: data.phone,
-        paymentReference: data.paymentReference || null,
-        paymentStatus: data.paymentReference ? "paid" : "pending",
+        paymentReference: data.paymentReference,
+        paymentStatus: "paid",
       })
       .returning();
 

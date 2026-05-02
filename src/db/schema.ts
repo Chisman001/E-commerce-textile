@@ -59,7 +59,7 @@ export const orders = pgTable("orders", {
   deliveryCity: text("delivery_city"),
   deliveryState: text("delivery_state"),
   phone: text("phone").notNull(),
-  paymentReference: text("payment_reference"),
+  paymentReference: text("payment_reference").unique(),
   paymentStatus: text("payment_status").default("pending"),
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
